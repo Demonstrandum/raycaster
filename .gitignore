@@ -1,0 +1,8 @@
+# Outfile
+raycaster
+*.out
+
+# Misc
+*.log
+desktop.ini
+.DS_Store

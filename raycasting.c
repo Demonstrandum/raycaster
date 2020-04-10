@@ -1,11 +1,4 @@
-#include <stdio.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <SDL2/SDL_timer.h>
-
-#define sin45 0.707
-#define WINDOW_HEIGHT 480
-#define WINDOW_WIDTH 640
+#include "raycasting.h"
 
 int main(void)
 {
@@ -70,19 +63,13 @@ int main(void)
     dest.h /= 4;
 
     //position in the centre
-    float x_pos = (WINDOW_WIDTH - dest.w) / 2 ;
-    float y_pos = (WINDOW_HEIGHT - dest.h) / 2;
+    Position pos = {
+    	.x = (WINDOW_WIDTH  - dest.w) / 2,
+	.y = (WINDOW_HEIGHT - dest.h) / 2
+    };
 
-    //typedef example for your peabrain
-    typedef struct {
-        float dx;
-        float dy;
-    } Velocity;
+    Velocity vel = { .dx = 0, .dy = 0};
 
-    Velocity vel = {300, 300};
-
-    float x_vel = 0;
-    float y_vel = 0;
 
     //keyboard inputs
     // int up = 0;
@@ -94,7 +81,7 @@ int main(void)
     int hoz = 0;
 
     // to allow the closing of the program
-    int close_requested = 0;
+    bool close_requested = false;
     //main game loop
     while (!close_requested) {
         //creates the new event
@@ -104,7 +91,7 @@ int main(void)
             //check for the type of the event
             switch (event.type) {
                 case SDL_QUIT:
-                    close_requested = 1;
+                    close_requested = true;
                     break;
                 case SDL_KEYDOWN:
                     //event.key gets the "key" structure from the union, since the union (struct) can only
@@ -130,7 +117,9 @@ int main(void)
                             // printf("A DOWN\n");
                             hoz = -1;
                             break;
-                    } break; //remember to break out again for the entire case
+			default:
+			    break;
+                    } break; // Remember to break out again for the entire case
                 case SDL_KEYUP:
                     switch (event.key.keysym.scancode) {
                         case SDL_SCANCODE_W:
@@ -153,22 +142,24 @@ int main(void)
                             //printf("A UP\n");
                             hoz = 0;
                             break;
+			default:
+			    break;
                     } break;
             }
         }
         //main animation loop runs; if no event is detected 
         
         //determining the velocity
-        x_vel = y_vel = 0;
+        vel.dx = vel.dy = 0;
 
         //if (up && right && !down && !left) x_vel = 212, y_vel = -212;
 
         if (vert != 0 && hoz != 0) {
-            y_vel = 300 * sin45 * -vert;
-            x_vel = 300 * sin45 * hoz;
+            vel.dy = 300 * sin45 * -vert;
+            vel.dx = 300 * sin45 * hoz;
         }
-        if (!vert && hoz != 0) x_vel = 300 * hoz;
-        if (!hoz && vert != 0) y_vel = 300 * -vert;
+        if (!vert && hoz != 0) vel.dx = 300 * hoz;
+        if (!hoz && vert != 0) vel.dy = 300 * -vert;
 
         // if (up && !down) y_vel = -300; //top of window is 0
         // if (!up && down) y_vel = 300;
@@ -176,23 +167,23 @@ int main(void)
         // if (!right && left) x_vel = -300;
 
         //position updating
-        x_pos += x_vel / 60;
-        y_pos += y_vel / 60;
+        pos.x += vel.dx / 60;
+        pos.y += vel.dy / 60;
 
         //collision detection
-        if (x_pos <= 0) {
-            x_pos = 0;
-        } if (y_pos <= 0) {
-            y_pos = 0;
-        } if (x_pos >= WINDOW_WIDTH - dest.w) {
-            x_pos = WINDOW_WIDTH - dest.w;
-        } if (y_pos >= WINDOW_HEIGHT - dest.h) {
-            y_pos = WINDOW_HEIGHT - dest.h;
-        }
+        if (pos.x <= 0)
+            pos.x = 0;
+        else if (pos.x >= WINDOW_WIDTH - dest.w)
+            pos.x = WINDOW_WIDTH - dest.w;
+
+	if (pos.y <= 0)
+	    pos.y = 0;
+	else if (pos.y >= WINDOW_HEIGHT - dest.h)
+            pos.y = WINDOW_HEIGHT - dest.h;
 
         //set the y pos in the struct that holds the sprite, casted to an int (le pixels)
-        dest.y = (int) y_pos;
-        dest.x = (int) x_pos;
+        dest.y = (int) pos.y;
+        dest.x = (int) pos.x;
 
         //clear and draw image to window
         SDL_RenderClear(rend);
