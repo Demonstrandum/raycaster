@@ -3,6 +3,7 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_timer.h>
 
+#define sin45 0.707
 #define WINDOW_HEIGHT 480
 #define WINDOW_WIDTH 640
 
@@ -59,7 +60,6 @@ int main(void)
         return 1;
     }
 
-    //-----------------------------------------------------------------------------------animation
 
     // struct to hold the position of a spriate
     SDL_Rect dest;
@@ -73,94 +73,134 @@ int main(void)
     float x_pos = (WINDOW_WIDTH - dest.w) / 2 ;
     float y_pos = (WINDOW_HEIGHT - dest.h) / 2;
 
-    float x_vel = 300;
-    float y_vel = 300;
+    //typedef example for your peabrain
+    typedef struct {
+        float dx;
+        float dy;
+    } Velocity;
 
+    Velocity vel = {300, 300};
+
+    float x_vel = 0;
+    float y_vel = 0;
+
+    //keyboard inputs
+    // int up = 0;
+    // int down = 0;
+    // int left = 0;
+    // int right = 0;
+
+    int vert = 0;
+    int hoz = 0;
+
+    // to allow the closing of the program
     int close_requested = 0;
-
+    //main game loop
     while (!close_requested) {
+        //creates the new event
         SDL_Event event;
+        //while there is some event lined up on the queue, if no events it skips the while loop 
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                close_requested = 1;
+            //check for the type of the event
+            switch (event.type) {
+                case SDL_QUIT:
+                    close_requested = 1;
+                    break;
+                case SDL_KEYDOWN:
+                    //event.key gets the "key" structure from the union, since the union (struct) can only
+                    //have one variable at time, we have to choose one, just read the SDL_EVENT docs smh
+                    switch (event.key.keysym.scancode) {
+                        case SDL_SCANCODE_W:
+                        case SDL_SCANCODE_UP:
+                            //printf("W DOWN\n");
+                            vert = 1;
+                            break;
+                        case SDL_SCANCODE_S:
+                        case SDL_SCANCODE_DOWN:
+                            //printf("S DOWN\n");
+                            vert = -1;
+                            break;
+                        case SDL_SCANCODE_D:
+                        case SDL_SCANCODE_RIGHT:
+                            //printf("D DOWN\n");
+                            hoz = 1;
+                            break;
+                        case SDL_SCANCODE_A:
+                        case SDL_SCANCODE_LEFT:
+                            // printf("A DOWN\n");
+                            hoz = -1;
+                            break;
+                    } break; //remember to break out again for the entire case
+                case SDL_KEYUP:
+                    switch (event.key.keysym.scancode) {
+                        case SDL_SCANCODE_W:
+                        case SDL_SCANCODE_UP:
+                            //printf("W UP\n");
+                            vert = 0;
+                            break;
+                        case SDL_SCANCODE_S:
+                        case SDL_SCANCODE_DOWN:
+                            //printf("S UP\n");
+                            vert = 0;
+                            break;
+                        case SDL_SCANCODE_D:
+                        case SDL_SCANCODE_RIGHT:
+                            //printf("D UP\n");
+                            hoz = 0;
+                            break;
+                        case SDL_SCANCODE_A:
+                        case SDL_SCANCODE_LEFT:
+                            //printf("A UP\n");
+                            hoz = 0;
+                            break;
+                    } break;
             }
-        } //collision detection
-        if (x_pos <= 0) {
-            x_pos = 0;
-            x_vel = -x_vel - (rand() % (100 + 1 + 100) - 100);
-        } if (y_pos <= 0) {
-            y_pos = 0;
-            y_vel = -y_vel - (rand() % (100 + 1 + 100) - 100);
-        } if (x_pos >= WINDOW_WIDTH - dest.w) {
-            x_pos = WINDOW_WIDTH - dest.w;
-            x_vel = -x_vel  - (rand() % (100 + 1 + 100) - 100);
-        } if (y_pos >= WINDOW_HEIGHT - dest.h) {
-            y_pos = WINDOW_HEIGHT - dest.h;
-            y_vel = -y_vel - (rand() % (100 + 1 + 100) - 100);
         }
+        //main animation loop runs; if no event is detected 
         
+        //determining the velocity
+        x_vel = y_vel = 0;
+
+        //if (up && right && !down && !left) x_vel = 212, y_vel = -212;
+
+        if (vert != 0 && hoz != 0) {
+            y_vel = 300 * sin45 * -vert;
+            x_vel = 300 * sin45 * hoz;
+        }
+        if (!vert && hoz != 0) x_vel = 300 * hoz;
+        if (!hoz && vert != 0) y_vel = 300 * -vert;
+
+        // if (up && !down) y_vel = -300; //top of window is 0
+        // if (!up && down) y_vel = 300;
+        // if (right && !left) x_vel = 300;
+        // if (!right && left) x_vel = -300;
+
         //position updating
         x_pos += x_vel / 60;
         y_pos += y_vel / 60;
 
-        //set the y pos in the struct, casted to an int (le pixels)
+        //collision detection
+        if (x_pos <= 0) {
+            x_pos = 0;
+        } if (y_pos <= 0) {
+            y_pos = 0;
+        } if (x_pos >= WINDOW_WIDTH - dest.w) {
+            x_pos = WINDOW_WIDTH - dest.w;
+        } if (y_pos >= WINDOW_HEIGHT - dest.h) {
+            y_pos = WINDOW_HEIGHT - dest.h;
+        }
+
+        //set the y pos in the struct that holds the sprite, casted to an int (le pixels)
         dest.y = (int) y_pos;
         dest.x = (int) x_pos;
 
-        //draw image to window
+        //clear and draw image to window
         SDL_RenderClear(rend);
         SDL_RenderCopy(rend, tex, NULL, &dest);
         SDL_RenderPresent(rend); //for double buffering (you don't care)
 
-    }
-
-
-    // //animation loop
-
-    // while (dest.y <= dest.h) {
-    //     //clear the window
-        // SDL_RenderClear(rend);
-
-        // //set the y pos in the struct, casted to an int (le pixels)
-        // dest.y = (int) y_pos;
-
-        // //draw image to window
-        // SDL_RenderCopy(rend, tex, NULL, &dest);
-        // SDL_RenderPresent(rend); //for double buffering (you don't care)
-
-    //     //update spriate position
-    //     y_pos += (float) 1000 / 60;
-
-    //     //wait 1/60th of a second
-    //     SDL_Delay(1000/60);
-    // }
-
-    // dest.y = (WINDOW_HEIGHT - dest.h) / 2;
-    // float x_pos = -WINDOW_WIDTH;
-    // dest.h = dest.h/4;
-    // dest.w = dest.w/4;
-
-    // while (dest.x <= WINDOW_WIDTH) {
-    //     //clear the window
-    //     SDL_RenderClear(rend);
-
-    //     //set the y pos in the struct, casted to an int (le pixels)
-    //     dest.x = (int) x_pos;
-
-    //     dest.h += 10;
-    //     dest.w += 10;
-
-    //     //draw image to window
-    //     SDL_RenderCopy(rend, tex, NULL, &dest);
-    //     SDL_RenderPresent(rend); //for double buffering (you don't care)
-
-    //     //update spriate position
-    //     x_pos += (float) 500 / 60;
-
-    //     //wait 1/60th of a second
-    //     SDL_Delay(1000/60);
-    // }
-    //-----------------------------------------------------------------------------------end of animation
+        //SDL_Delay(1000/60);
+    } //end of game loop
 
 
     //cleans up stuff before exit
