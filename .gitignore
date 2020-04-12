@@ -2,6 +2,9 @@
 raycaster
 *.out
 
+# Object files
+*.o
+
 # Misc
 *.log
 desktop.ini
