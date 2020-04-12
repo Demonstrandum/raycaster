@@ -12,4 +12,4 @@ raycasting.o: raycasting.c raycasting.h
 	$(CC) -c $(CFLAGS) raycasting.c
 
 clean:
-	rm $(TARGET) raycasting.o
+	rm -f $(TARGET) raycasting.o
