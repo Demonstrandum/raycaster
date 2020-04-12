@@ -1,5 +1,14 @@
 #include "raycasting.h"
 
+int map[MAP_WIDTH][MAP_HEIGHT] = {
+    {1,1,1,1,1,1},
+    {1,0,0,0,0,1},
+    {1,0,0,2,0,1},
+    {1,0,0,2,0,1},
+    {1,0,0,2,0,1},
+    {1,1,1,1,1,1}
+};
+
 int main(void)
 {
     //initiliase graphics system
@@ -14,7 +23,6 @@ int main(void)
                                         SDL_WINDOWPOS_CENTERED,
                                         SDL_WINDOWPOS_CENTERED,
                                         WINDOW_WIDTH, WINDOW_HEIGHT, 0);
-
     if (!win) {
         printf("error creating window: %s\n", SDL_GetError());
         SDL_Quit();
@@ -31,7 +39,7 @@ int main(void)
         return 1;
     }
 
-    //load image into regular memory
+    //load image into regular memory, pointer obvs
     SDL_Surface* surface = IMG_Load("penis.jpg");
     if (!surface) {
         printf("error creating surface: %s\n", SDL_GetError());
@@ -53,6 +61,9 @@ int main(void)
         return 1;
     }
 
+    //creating le rectangle (maybe)
+    //SDL_Rect dest_box = {10, 10, 10, 10};
+
 
     // struct to hold the position of a spriate
     SDL_Rect dest;
@@ -62,20 +73,29 @@ int main(void)
     dest.w /= 4;
     dest.h /= 4;
 
-    //position in the centre
-    Position pos = {
-    	.x = (WINDOW_WIDTH  - dest.w) / 2,
-	.y = (WINDOW_HEIGHT - dest.h) / 2
+
+
+    //player information
+    Position pos = {.x = 2, .y = 2};
+    Velocity vel = { .dx = 0, .dy = 0};
+    //plane and direction MUST be parallel
+    Plane pln = {0.70, 0};
+    Direction dir = {0, 1};
+
+    double pln_x = 0.70, pln_y = 0;
+    double dir_x = 0, dir_y = 1;
+
+
+    struct Player {
+        Position pos;
+        Velocity vel;
+        Direction dir;
+        Plane pln;
     };
 
-    Velocity vel = { .dx = 0, .dy = 0};
-
-
-    //keyboard inputs
-    // int up = 0;
-    // int down = 0;
-    // int left = 0;
-    // int right = 0;
+    struct Player player = {
+        pos, vel, dir, pln
+    };
 
     int vert = 0;
     int hoz = 0;
@@ -124,22 +144,14 @@ int main(void)
                     switch (event.key.keysym.scancode) {
                         case SDL_SCANCODE_W:
                         case SDL_SCANCODE_UP:
-                            //printf("W UP\n");
-                            vert = 0;
-                            break;
                         case SDL_SCANCODE_S:
                         case SDL_SCANCODE_DOWN:
-                            //printf("S UP\n");
                             vert = 0;
                             break;
                         case SDL_SCANCODE_D:
                         case SDL_SCANCODE_RIGHT:
-                            //printf("D UP\n");
-                            hoz = 0;
-                            break;
                         case SDL_SCANCODE_A:
                         case SDL_SCANCODE_LEFT:
-                            //printf("A UP\n");
                             hoz = 0;
                             break;
 			default:
@@ -149,45 +161,100 @@ int main(void)
         }
         //main animation loop runs; if no event is detected 
         
-        //determining the velocity
-        vel.dx = vel.dy = 0;
+        //ray position and direction
+        for (int i = 0; i <= WINDOW_WIDTH; i++) {
+            //length of rays, lambda is the scalar that essentially moves the ray across the camera plane
+            double lambda = (2 * i) / WINDOW_WIDTH - 1;
+            double ray_x = dir_x + pln_x * lambda;
+            double ray_y = dir_y + pln_y * lambda;
 
-        //if (up && right && !down && !left) x_vel = 212, y_vel = -212;
+            int map_x = (int) floor(player.pos.x);
+            int map_y = (int) floor(player.pos.x);
 
-        if (vert != 0 && hoz != 0) {
-            vel.dy = 300 * sin45 * -vert;
-            vel.dx = 300 * sin45 * hoz;
+            //distance from the player to the first x or y side
+            double init_x, init_y;
+
+            //length from one x to the next
+            double delta_x = sqrt(1 + (ray_y * ray_y) / (ray_x * ray_x));
+            double delta_y = sqrt(1 + (ray_x * ray_x) / (ray_y * ray_y));
+
+            //step in either x or y, positive or negative, depending on the direction of the ray (+-)
+            int step_x, step_y;
+
+            bool hit = false;
+            bool side; //x-side 0, y-side 1
+
+            //calculate the inital distance to the first side
+            double mu_x = player.pos.x - map_x;
+            double mu_y = player.pos.y - map_y;
+            if (ray_x < 0) {
+                step_x = -1;
+                init_x = mu_x * delta_x;
+            } else {
+                step_x = 1;
+                init_x = (1 - mu_x) * delta_x;
+            } if (ray_y < 0) {
+                step_y = -1;
+                init_y = mu_y * delta_y;
+            } else {
+                step_y = 1;
+                init_y = (1 - mu_y) * delta_y;
+            }
+
+            //le DDA
+            while (!hit) {
+                if (init_x < init_y) {
+                    init_x += delta_x;
+                    map_x += step_x;
+                    side = false;
+                } else {
+                    init_y += delta_y;
+                    map_y += step_y;
+                    side = true;
+                } if (map[map_x][map_y] > 0) hit = true;
+            }
+
+
         }
-        if (!vert && hoz != 0) vel.dx = 300 * hoz;
-        if (!hoz && vert != 0) vel.dy = 300 * -vert;
 
-        // if (up && !down) y_vel = -300; //top of window is 0
-        // if (!up && down) y_vel = 300;
-        // if (right && !left) x_vel = 300;
-        // if (!right && left) x_vel = -300;
 
-        //position updating
-        pos.x += vel.dx / 60;
-        pos.y += vel.dy / 60;
 
-        //collision detection
-        if (pos.x <= 0)
-            pos.x = 0;
-        else if (pos.x >= WINDOW_WIDTH - dest.w)
-            pos.x = WINDOW_WIDTH - dest.w;
+        //---------------------------------------------------------------------------------------
+        // //determining the velocity
+        // vel.dx = vel.dy = 0;
 
-	if (pos.y <= 0)
-	    pos.y = 0;
-	else if (pos.y >= WINDOW_HEIGHT - dest.h)
-            pos.y = WINDOW_HEIGHT - dest.h;
+        // if (vert != 0 && hoz != 0) {
+        //     vel.dy = VELOCITY * sin45 * -vert;
+        //     vel.dx = VELOCITY * sin45 * hoz;
+        // }
+        // if (!vert && hoz != 0) vel.dx = VELOCITY * hoz;
+        // if (!hoz && vert != 0) vel.dy = VELOCITY * -vert;
 
-        //set the y pos in the struct that holds the sprite, casted to an int (le pixels)
-        dest.y = (int) pos.y;
-        dest.x = (int) pos.x;
+        // //position updating
+        // pos.x += vel.dx / 60;
+        // pos.y += vel.dy / 60;
+
+        // //collision detection
+        // if (pos.x <= 0) pos.x = 0;
+        // if (pos.x >= WINDOW_WIDTH - dest.w) pos.x = WINDOW_WIDTH - dest.w;
+
+	    // if (pos.y <= 0) pos.y = 0;
+	    // if (pos.y >= WINDOW_HEIGHT - dest.h) pos.y = WINDOW_HEIGHT - dest.h;
+
+        // //set the y pos in the struct that holds the sprite, casted to an int (le pixels)
+        // dest.y = (int) pos.y;
+        // dest.x = (int) pos.x;
+        //-----------------------------------------------------------------------------------
 
         //clear and draw image to window
         SDL_RenderClear(rend);
-        SDL_RenderCopy(rend, tex, NULL, &dest);
+        //draw order matters!
+        //SDL_RenderCopy(rend, tex, NULL, &dest);
+        //SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
+        //SDL_RenderFillRect(rend, &dest_box);
+        //SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+
+
         SDL_RenderPresent(rend); //for double buffering (you don't care)
 
         //SDL_Delay(1000/60);
