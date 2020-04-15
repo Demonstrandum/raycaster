@@ -2,10 +2,10 @@
 
 int map[MAP_WIDTH][MAP_HEIGHT] = {
     {1,1,1,1,1,1},
+    {1,0,0,2,0,0},
     {1,0,0,0,0,1},
-    {1,0,0,2,0,1},
-    {1,0,0,2,0,1},
-    {1,0,0,2,0,1},
+    {1,0,0,0,0,1},
+    {1,0,0,0,0,1},
     {1,1,1,1,1,1}
 };
 
@@ -73,18 +73,19 @@ int main(void)
     dest.w /= 4;
     dest.h /= 4;
 
-
+    //how the fuck does the map work?
 
     //player information
-    Position pos = {.x = 2, .y = 2};
+    //x and y are reversed becuse you're stupid lol?
+    Position pos = {.x = 3, .y = 3};
     Velocity vel = { .dx = 0, .dy = 0};
     //plane and direction MUST be parallel
-    Plane pln = {0.70, 0};
-    Direction dir = {0, 1};
+    //x and y are also reversed, whoops?
+    Plane pln = {0, 0.7};
+    Direction dir = {1, 0};
 
-    double pln_x = 0.70, pln_y = 0;
-    double dir_x = 0, dir_y = 1;
-
+    //double pln_x = 0.70, pln_y = 0;
+    //double dir_x = 0, dir_y = 0;
 
     struct Player {
         Position pos;
@@ -106,6 +107,7 @@ int main(void)
     while (!close_requested) {
         //creates the new event
         SDL_Event event;
+        SDL_RenderClear(rend);
         //while there is some event lined up on the queue, if no events it skips the while loop 
         while (SDL_PollEvent(&event)) {
             //check for the type of the event
@@ -165,8 +167,8 @@ int main(void)
         for (int i = 0; i <= WINDOW_WIDTH; i++) {
             //length of rays, lambda is the scalar that essentially moves the ray across the camera plane
             double lambda = (2 * i) / WINDOW_WIDTH - 1;
-            double ray_x = dir_x + pln_x * lambda;
-            double ray_y = dir_y + pln_y * lambda;
+            double ray_x =  player.dir.x + player.pln.x * lambda;
+            double ray_y = player.dir.y + player.pln.y * lambda;
 
             int map_x = (int) floor(player.pos.x);
             int map_y = (int) floor(player.pos.x);
@@ -177,6 +179,11 @@ int main(void)
             //length from one x to the next
             double delta_x = sqrt(1 + (ray_y * ray_y) / (ray_x * ray_x));
             double delta_y = sqrt(1 + (ray_x * ray_x) / (ray_y * ray_y));
+            //normalise it, only the ratio matters (since it's a gradient)
+            double normal = 1/sqrt(ray_x*ray_x + ray_y*ray_y);
+            delta_x *= normal;
+            delta_y *= normal;
+            printf("%f\n", delta_y);
 
             //step in either x or y, positive or negative, depending on the direction of the ray (+-)
             int step_x, step_y;
@@ -187,6 +194,7 @@ int main(void)
             //calculate the inital distance to the first side
             double mu_x = player.pos.x - map_x;
             double mu_y = player.pos.y - map_y;
+            //calculate the step size needed
             if (ray_x < 0) {
                 step_x = -1;
                 init_x = mu_x * delta_x;
@@ -213,8 +221,36 @@ int main(void)
                     side = true;
                 } if (map[map_x][map_y] > 0) hit = true;
             }
+            //distance to the wall that was it, perp to the camera plane, stops fisheye
+            //add one sometimes, like above to correct position, think about it, rest is basic geometry
+            double perp_dist;
+            if (side == false) perp_dist = (((1 - step_x) / 2) - mu_x) / ray_x;
+            else               perp_dist = (((1 - step_y) / 2) - mu_y) / ray_y;
+            //printf("%f\n", ray_x);
 
+            //line height varies inversely with distance from camera plane
+            int line_height = (int) WINDOW_HEIGHT / perp_dist;
+            
+            //calculate height of walls
+            int start = (WINDOW_HEIGHT - line_height) / 2;
+            if (start < 0) start = 0;
+            int stop = (WINDOW_HEIGHT + line_height) / 2;
+            if (stop >= WINDOW_HEIGHT) stop = WINDOW_HEIGHT - 1;
 
+            switch (map[map_x][map_y]) {
+                case 1:
+                    //printf("%d\n", map[map_x][map_y]);
+                    SDL_SetRenderDrawColor(rend, 0, 0, 255, SDL_ALPHA_OPAQUE);
+                    if (side == true) SDL_SetRenderDrawColor(rend, 0, 0, 125, SDL_ALPHA_OPAQUE);
+                    break;
+                case 2: 
+                    //printf("%d\n", map[map_x][map_y]);
+                    SDL_SetRenderDrawColor(rend, 0, 255, 0, SDL_ALPHA_OPAQUE);
+                    if (side == true) SDL_SetRenderDrawColor(rend, 0, 125, 0, SDL_ALPHA_OPAQUE);
+                    break;
+            }
+            //printf("%d\n%d\n", start, stop);
+            SDL_RenderDrawLine(rend, i, start, i, stop);
         }
 
 
@@ -247,7 +283,7 @@ int main(void)
         //-----------------------------------------------------------------------------------
 
         //clear and draw image to window
-        SDL_RenderClear(rend);
+        //SDL_RenderClear(rend);
         //draw order matters!
         //SDL_RenderCopy(rend, tex, NULL, &dest);
         //SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
@@ -257,7 +293,7 @@ int main(void)
 
         SDL_RenderPresent(rend); //for double buffering (you don't care)
 
-        //SDL_Delay(1000/60);
+        SDL_Delay(10000/24);
     } //end of game loop
 
 

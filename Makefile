@@ -1,8 +1,8 @@
 CC=gcc
-CFLAGS=-Wall -ISDL2 -D_REENTRANT
+CFLAGS=-Wall -ISDL2 -D_REENTRANT 
 TARGET=raycaster
 
-SDL=-lSDL2 -lSDL2_image
+SDL=-lSDL2 -lSDL2_image -lm
 
 
 all: raycasting.o
