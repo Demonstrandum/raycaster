@@ -13,8 +13,8 @@
 #define sin45 0.707
 #define WINDOW_HEIGHT 480
 #define WINDOW_WIDTH 640
-#define MAP_WIDTH 6
-#define MAP_HEIGHT 6
+#define MAP_WIDTH 12
+#define MAP_HEIGHT 12
 
 typedef struct {
 	double x;

@@ -1,12 +1,18 @@
 #include "raycasting.h"
 
 int map[MAP_WIDTH][MAP_HEIGHT] = {
-    {1,1,1,1,1,1},
-    {1,0,0,2,0,0},
-    {1,0,0,0,0,1},
-    {1,0,0,0,0,1},
-    {1,0,0,0,0,1},
-    {1,1,1,1,1,1}
+    {1,2,1,2,1,1,2,1,2,1,2,1},
+    {2,0,0,0,0,0,0,0,0,0,0,2},
+    {1,0,0,0,0,0,0,0,0,0,0,1},
+    {2,0,0,0,0,0,0,0,0,0,0,2},
+    {1,0,0,0,0,0,0,0,0,0,0,1},
+    {2,0,0,0,0,0,0,0,0,0,0,2},
+    {1,0,0,0,0,0,0,0,0,0,0,1},
+    {2,0,0,0,0,0,0,0,0,0,0,2},
+    {1,0,0,0,0,0,0,0,0,0,0,1},
+    {2,0,0,0,0,0,0,0,0,0,0,2},
+    {1,0,0,0,0,0,0,0,0,0,0,1},
+    {1,2,1,2,1,2,1,2,1,2,1,2}
 };
 
 int main(void)
@@ -100,6 +106,7 @@ int main(void)
 
     int vert = 0;
     int hoz = 0;
+    int turn = 0;
 
     // to allow the closing of the program
     bool close_requested = false;
@@ -120,24 +127,26 @@ int main(void)
                     //have one variable at time, we have to choose one, just read the SDL_EVENT docs smh
                     switch (event.key.keysym.scancode) {
                         case SDL_SCANCODE_W:
-                        case SDL_SCANCODE_UP:
                             //printf("W DOWN\n");
                             vert = 1;
                             break;
                         case SDL_SCANCODE_S:
-                        case SDL_SCANCODE_DOWN:
                             //printf("S DOWN\n");
                             vert = -1;
                             break;
                         case SDL_SCANCODE_D:
-                        case SDL_SCANCODE_RIGHT:
                             //printf("D DOWN\n");
                             hoz = 1;
                             break;
                         case SDL_SCANCODE_A:
-                        case SDL_SCANCODE_LEFT:
                             // printf("A DOWN\n");
                             hoz = -1;
+                            break;
+                        case SDL_SCANCODE_RIGHT:
+                            turn = 1;
+                            break;
+                        case SDL_SCANCODE_LEFT:
+                            turn = -1;
                             break;
 			default:
 			    break;
@@ -145,17 +154,16 @@ int main(void)
                 case SDL_KEYUP:
                     switch (event.key.keysym.scancode) {
                         case SDL_SCANCODE_W:
-                        case SDL_SCANCODE_UP:
                         case SDL_SCANCODE_S:
-                        case SDL_SCANCODE_DOWN:
                             vert = 0;
                             break;
                         case SDL_SCANCODE_D:
-                        case SDL_SCANCODE_RIGHT:
                         case SDL_SCANCODE_A:
-                        case SDL_SCANCODE_LEFT:
                             hoz = 0;
                             break;
+                        case SDL_SCANCODE_RIGHT:
+                        case SDL_SCANCODE_LEFT:
+                            turn = 0;
 			default:
 			    break;
                     } break;
@@ -183,6 +191,11 @@ int main(void)
             double normal = 1/sqrt(ray_x*ray_x + ray_y*ray_y);
             delta_x *= normal;
             delta_y *= normal;
+
+            //delta_x = (ray_y == 0) ? 0 : ((ray_x == 0) ? 1 : abs(1 / ray_x));
+            //delta_y = (ray_x == 0) ? 0 : ((ray_y == 0) ? 1 : abs(1 / ray_y));
+
+
             printf("%f\n", delta_y);
 
             //step in either x or y, positive or negative, depending on the direction of the ray (+-)
@@ -253,10 +266,29 @@ int main(void)
             SDL_RenderDrawLine(rend, i, start, i, stop);
         }
 
+        SDL_SetRenderDrawColor(rend, 0, 0, 0, SDL_ALPHA_OPAQUE);
+        //movement system
+
+        //if (!vert && hoz != 0) player.vel.dx = hoz;
+        //if (!hoz && vert != 0) player.vel.dy = vert;
+        player.pos.x += player.dir.x * hoz;
+        player.pos.y += player.dir.y * vert;
+
+        //rotation
+        double rot_speed = 1;
+        
+        double old_dir_x = player.dir.x;
+        player.dir.x = player.dir.x * cos(-rot_speed*turn) - player.dir.y * sin(-rot_speed*turn);
+        player.dir.y = old_dir_x * sin(-rot_speed*turn) + player.dir.y * cos(-rot_speed*turn);
+
+        double old_pln_x = player.pln.x;
+        player.pln.x = player.pln.x * cos(-rot_speed*turn) - player.pln.y * sin(-rot_speed*turn);
+        player.pln.y = old_pln_x * sin(-rot_speed*turn) + player.pln.y * cos(-rot_speed*turn);
+
 
 
         //---------------------------------------------------------------------------------------
-        // //determining the velocity
+        //determining the velocity
         // vel.dx = vel.dy = 0;
 
         // if (vert != 0 && hoz != 0) {
