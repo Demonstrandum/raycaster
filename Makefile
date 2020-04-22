@@ -1,15 +1,22 @@
 CC=gcc
-CFLAGS=-Wall -ISDL2 -D_REENTRANT
+CFLAGS=-Wall -Wno-switch -ISDL2 -D_REENTRANT
 TARGET=raycaster
+OBJ=raycasting.o log.o display.o
 
 LINKS=-lm -lSDL2 -lSDL2_image
 
 
-all: raycasting.o
-	$(CC) -o $(TARGET) $(LINKS) raycasting.o
+all: $(OBJ)
+	$(CC) -o $(TARGET) $(LINKS) $(OBJ)
 
 raycasting.o: raycasting.c raycasting.h
 	$(CC) -c $(CFLAGS) raycasting.c
 
+log.o: log.c log.h
+	$(CC) -c $(CFLAGS) log.c
+
+display.o: display.c display.h
+	$(CC) -c $(CFLAGS) display.c
+
 clean:
-	rm -f $(TARGET) raycasting.o
+	rm -f $(TARGET) $(OBJ)
